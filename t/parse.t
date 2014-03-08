@@ -7,70 +7,81 @@ use Test::More;
 use Test::Deep;
 use Devel::Dwarn;
 
+use SSS::Grammar;
+
 $::RD_HINT = 1;
 use Parse::RecDescent;
-my $grammar = <<'GRAMMAR';
-stylesheet: statements EOF
+ok(my $parser = Parse::RecDescent->new(SSS::Grammar->as_string), 'instantiation');
 
-statements: ''
-#statements: statement(s /;/)
+cmp_deeply(
+   $parser->stylesheet('h1 { foo: 1; bar: #333 } h2 { for: 1 }'),
+   ss([
+      rule(h1 => [ prop(foo => 1), prop(bar => '#333') ]),
+      rule(h2 => [ prop(for => 1) ]),
+   ]),
+   'rules',
+);
 
-statement: variableDeclaration
+cmp_deeply(
+   $parser->rules('h1 { foo: 1; bar: #333 } h2 { for: 1 }'),
+   [
+      rule(h1 => [ prop(foo => 1), prop(bar => '#333') ]),
+      rule(h2 => [ prop(for => 1) ]),
+   ],
+   'rules',
+);
 
-property: identifier ':' value { $return = $item[1]}
+cmp_deeply(
+   $parser->rule('h1 { foo: 1; bar: #333 }'),
+   rule(h1 => [ prop(foo => 1), prop(bar => '#333') ]),
+   'simple rule',
+);
 
-variableDeclaration: variable ':' values
+cmp_deeply(
+   $parser->rule('h1 { foo: 1 }'),
+   rule(h1 => [ prop(foo => 1) ]),
+   'medium rule',
+);
 
-values: value(s /\s+/)
+cmp_deeply(
+   $parser->rule('h1 { }'),
+   rule(h1 => []),
+   'simple rule',
+);
 
-value: identifier
-value: color
-value: number
-value: dimension
-value: string
-value: uri
-value: variable
+cmp_deeply(
+   $parser->properties('foo: bar; baz: 1'),
+   [
+      prop(foo => 'bar'),
+      prop(baz => 1),
+   ],
+   'properties',
+);
 
+cmp_deeply(
+   $parser->property('foo: bar'),
+   prop(foo => 'bar'),
+   'property',
+);
 
-# originally lexer rules
-comment: /\/\//
-ws     : /\s+/
+is($parser->selector('frew'), 'frew', 'simple selector');
+is($parser->selector('.frew'), '.frew', 'complex selector');
+is($parser->selector('::frew'), '::frew', 'more complex selector');
 
-color     : '#' /[0-9A-Fa-f]{6}/ { $return = [shift @item, join "", @item] }
-color     : '#' /[0-9A-Fa-f]{3}/ { $return = [shift @item, join "", @item] }
+is($parser->values('1 1 3px #444'), '1 1 3px #444', 'values');
 
-dimension : number 'px' { $return = [shift @item, join "", @item] }
-dimension : number 'em' { $return = [shift @item, join "", @item] }
-dimension : number '%'  { $return = [shift @item, join "", @item] }
+is($parser->value('3px'), '3px', 'px dimension');
+is($parser->value('3.1em'), '3.1em', 'em dimesion');
+is($parser->value('3.1%'), '3.1%', '% dimension');
 
-identifier: name
-
-string    : /"[^"]*?"/
-string    : /'[^']*?'/
-
-selector  : partial_selector
-selector  : name partial_selector
-
-uri       : 'url(' /[^)]+?/ ')'
-
-variable  : '@' name
-
-# originally lexer macros
-number  : /[0-9]+\.[0-9]+/ { $return = $item[1] }
-number  : /[0-9]+/ { $return = $item[1] }
-name    : /[a-zA-Z][\w-]*/
-partial_selector: /(?:\:\:|[.#:])/ name
-
-LBRACE   : '{'
-RBRACE   : '}'
-PLUS     : '+'
-COLON    : ':'
-SEMICOLON: ';'
-EOF      : /^\Z/
-
-GRAMMAR
-
-ok(my $parser = Parse::RecDescent->new($grammar), 'instantiation');
-cmp_deeply($parser->stylesheet('hr { }'), ['hr', []]);
+is($parser->value('3.1'), '3.1', 'floating point');
+is($parser->value('44'), '44', 'integer');
+is($parser->value('#444'), '#444', 'short color value');
+is($parser->value('#4a4b43'), '#4a4b43', 'long color value');
+is($parser->value('frew'), 'frew', 'identifier value');
 
 done_testing;
+
+sub rule { SSS::Nodes::Rule->new(@_) }
+sub prop { SSS::Nodes::Property->new(@_) }
+sub ss   { SSS::Nodes::StyleSheet->new(@_) }
