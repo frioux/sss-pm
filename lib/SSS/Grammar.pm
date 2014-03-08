@@ -16,6 +16,7 @@ rule: selector '{' properties '}' { SSS::Nodes::Rule->new($item[1], $item[3]) }
 
 selector: identifier | actual_selector
 
+properties: property(s? /;/) ';' { $item[1] }
 properties: property(s? /;/)
 
 property: identifier ':' values { SSS::Nodes::Property->new($item[1], $item[3]) }
