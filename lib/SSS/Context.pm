@@ -13,6 +13,7 @@ sub parent { shift->[1] }
 sub rule   { shift->[0] }
 
 sub selectors {
+   my $self = shift;
    (
       ($self->parent ? ($self->parent->selectors) : ()),
       ($self->rule   ? ($self->rule->selector)   : ()),

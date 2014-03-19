@@ -17,6 +17,8 @@ package SSS::Nodes::Property {
 }
 
 package SSS::Nodes::Rule {
+   use SSS::Context;
+
    sub new {
       my ($class, $selector, $props) = @_;
 
@@ -26,9 +28,24 @@ package SSS::Nodes::Rule {
    sub selector { shift->[0] }
    sub props    { shift->[1] }
 
+   my $_isa = sub { shift->isa('SSS::Nodes::' . shift) };
    sub to_css {
-      my $prop_css = join '; ', map $_->to_css, @{$_[0]->props};
-      $_[0]->selector . " { $prop_css }"
+      my ($self, $parent_ctx) = @_;
+
+      my ($ctx, @prop_css, @nested_rule_css) = (SSS::Context->new($self, $parent_ctx));
+
+      for my $decl (@{$self->props}) {
+         my $css = $decl->to_css($ctx);
+
+         if ($decl->$_isa('Property')) {
+            push @prop_css, $css
+         } elsif ($decl->$_isa('Rule')) {
+            push @nested_rule_css, $css
+         }
+      }
+      join "\n",
+         $ctx->selector . ' { ' . ( join '; ', @prop_css ) . " }",
+         @nested_rule_css
    }
 }
 

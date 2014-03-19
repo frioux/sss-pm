@@ -19,6 +19,14 @@ is($parser->stylesheet('h1 { } p { }')->to_css,
    'simple compilation'
 );
 
+is($parser->stylesheet('h1 {
+   p { font-size: 10px }
+}')->to_css,
+   "h1 {  }\n" .
+   'h1 p { font-size: 10px }',
+   'nested rule'
+);
+
 my $code = 'h1 { font-size: 10px; padding: 10px 20px }';
 is($parser->stylesheet($code)->to_css, $code, 'properties');
 
