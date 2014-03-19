@@ -9,9 +9,41 @@ use Devel::Dwarn;
 
 use SSS::Grammar;
 
-$::RD_HINT = 1;
+# $::RD_HINT = $::RD_TRACE = 1;
 use Parse::RecDescent;
 ok(my $parser = Parse::RecDescent->new(SSS::Grammar->as_string), 'instantiation');
+
+cmp_deeply(
+   $parser->stylesheet('h1 { p { } a { } }'),
+   ss([
+      rule(h1 => [
+         rule(p => []),
+         rule(a => [])
+      ]),
+   ]),
+   'nested rules',
+);
+
+my $sss = <<'SSS';
+h1 {
+   font-size: 10px;
+   p { }
+   font-size: 10px;
+   a { }
+}
+SSS
+cmp_deeply(
+   $parser->stylesheet($sss),
+   ss([
+      rule(h1 => [
+         prop('font-size' => '10px'),
+         rule(p => []),
+         prop('font-size' => '10px'),
+         rule(a => [])
+      ]),
+   ]),
+   'nested rules',
+);
 
 cmp_deeply(
    $parser->stylesheet('h1 { foo: 1; bar: #333 } h2 { for: 1 }'),
@@ -34,7 +66,7 @@ cmp_deeply(
 cmp_deeply(
    $parser->rule('h1 { foo: 1; bar: #333 }'),
    rule(h1 => [ prop(foo => 1), prop(bar => '#333') ]),
-   'simple rule',
+   'complex rule',
 );
 
 cmp_deeply(
@@ -50,12 +82,12 @@ cmp_deeply(
 );
 
 cmp_deeply(
-   $parser->properties('foo: bar; baz: 1'),
+   $parser->declarations('foo: bar; baz: 1'),
    [
       prop(foo => 'bar'),
       prop(baz => 1),
    ],
-   'properties',
+   'declarations',
 );
 
 cmp_deeply(

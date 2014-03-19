@@ -13,7 +13,7 @@ package SSS::Nodes::Property {
    sub name   { shift->[0] }
    sub values { shift->[1] }
 
-   sub to_css { $_[0]->name . ': ' . $_[0]->values . ';' }
+   sub to_css { $_[0]->name . ': ' . $_[0]->values }
 }
 
 package SSS::Nodes::Rule {
@@ -27,7 +27,7 @@ package SSS::Nodes::Rule {
    sub props    { shift->[1] }
 
    sub to_css {
-      my $prop_css = join ' ', map $_->to_css, @{$_[0]->props};
+      my $prop_css = join '; ', map $_->to_css, @{$_[0]->props};
       $_[0]->selector . " { $prop_css }"
    }
 }

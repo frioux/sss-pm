@@ -12,12 +12,18 @@ stylesheet: rules eof { SSS::Nodes::StyleSheet->new($item[1]) }
 
 rules: rule(s)
 
-rule: selector '{' properties '}' { SSS::Nodes::Rule->new($item[1], $item[3]) }
+rule: selector '{' declarations '}' {
+   use Moose::Autobox; # this is a hack
+   SSS::Nodes::Rule->new($item[1], $item[3]->flatten_deep)
+}
 
 selector: identifier | actual_selector
 
-properties: property(s? /;/) ';' { $item[1] }
-properties: property(s? /;/)
+declarations: declarationGroup(s? /;/)
+
+declarationGroup: rules property { [@{$item[1]}, $item[2]] }
+declarationGroup: property
+declarationGroup: rules
 
 property: identifier ':' values { SSS::Nodes::Property->new($item[1], $item[3]) }
 

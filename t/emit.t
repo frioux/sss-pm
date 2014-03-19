@@ -19,7 +19,7 @@ is($parser->stylesheet('h1 { } p { }')->to_css,
    'simple compilation'
 );
 
-my $code = 'h1 { font-size: 10px; padding: 10px 20px; }';
+my $code = 'h1 { font-size: 10px; padding: 10px 20px }';
 is($parser->stylesheet($code)->to_css, $code, 'properties');
 
 done_testing;
